@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore disk usage in your terminal with Declutter, an open-source treemap for macOS and Linux.">
+  <meta property="og:title" content="Declutter — Explore disk usage in your terminal">
+  <meta property="og:description" content="Find what takes up space with a read-only terminal treemap for macOS and Linux.">
+  <meta property="og:image" content="github-social-preview.png">
+  <meta property="og:image:width" content="1280">
+  <meta property="og:image:height" content="640">
+  <meta name="twitter:card" content="summary_large_image">
+  <title>Declutter — Explore disk usage in your terminal</title>
+  <link rel="icon" href="favicon.png" type="image/png" sizes="64x64">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="wrap bar">
+    <a class="brand" href="./">Declutter</a>
+    <nav aria-label="Main">
+      <a href="https://sojoodi.com/apps/">All apps</a>
+      <a href="#install">Install</a>
+    </nav>
+  </header>
+  <main id="main" class="wrap">
+    <section class="hero">
+      <p class="eyebrow">macOS · Linux</p>
+      <h1>Find what’s taking up space.</h1>
+      <p class="intro">Explore disk usage in your terminal. Declutter turns folders into a treemap so you can spot large directories and build artifacts at a glance.</p>
+      <div class="actions">
+        <a class="button primary" href="#install">Install Declutter</a>
+        <a class="button" href="https://github.com/ssojoodi/declutter">View on GitHub</a>
+      </div>
+      <img class="cover" src="github-social-preview.png" width="1280" height="640" alt="Declutter promotional artwork with an illustrated blue disk usage treemap">
+    </section>
+    <section class="section" aria-labelledby="features-title">
+      <h2 id="features-title">See where your disk space goes.</h2>
+      <div class="features">
+        <article><h3>Spot large folders</h3><p>Larger blocks represent folders that take up more space. Color distinguishes temporary and build files from source files.</p></article>
+        <article><h3>Explore with your keyboard</h3><p>Move with the arrow keys, press <kbd>Enter</kbd> to open a folder, or press <kbd>f</kbd> to list its files by size.</p></article>
+        <article><h3>Inspect files safely</h3><p>Press <kbd>i</kbd> for folder statistics. Declutter scans in read-only mode.</p></article>
+      </div>
+    </section>
+    <section class="section demos" aria-labelledby="demo-title">
+      <h2 id="demo-title">See Declutter in action.</h2>
+      <figure>
+        <img class="cover" src="mobile-ssh-sample.png" width="1536" height="1024" loading="lazy" alt="Two mobile SSH terminal views showing the disk usage treemap and the directory inspector">
+        <figcaption>Mobile SSH sample showing the treemap and directory inspector.</figcaption>
+      </figure>
+      <figure>
+        <picture>
+          <source media="(prefers-reduced-motion: reduce)" srcset="terminal-demo-still.png">
+          <img class="cover" src="terminal-demo.gif" width="892" height="768" loading="lazy" alt="Desktop terminal showing Declutter’s disk usage treemap">
+        </picture>
+        <figcaption>Declutter running in a desktop terminal.</figcaption>
+      </figure>
+    </section>
+    <section id="install" class="section install" aria-labelledby="install-title">
+      <div>
+        <h2 id="install-title">Install from source.</h2>
+        <p>On macOS or Linux, you’ll need Git, Rust, Cargo, a native linker, and Make. Open the app with a directory path to start scanning.</p>
+      </div>
+      <pre><code>git clone https://github.com/ssojoodi/declutter.git
+cd declutter
+make install
+~/.local/bin/declutter "$HOME"</code></pre>
+    </section>
+  </main>
+  <footer class="wrap bar footer">
+    <span>Made by Sahand Sojoodi · MIT license</span>
+    <a href="https://sojoodi.com/">sojoodi.com</a>
+  </footer>
+</body>
+</html>

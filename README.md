@@ -1,5 +1,7 @@
 # Declutter - TUI Disk Space Analyzer
 
+![Declutter preview with a blue disk usage treemap](web-page/github-social-preview.png)
+
 A terminal UI tool that visualizes disk space usage in the style of classic defragmentation utilities. Instead of defragmenting, it helps you identify temporary/build files (node_modules, .pycache, target, etc.) that consume significant disk space.
 
 ## Features
