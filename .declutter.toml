@@ -1,0 +1,28 @@
+temp_patterns = [
+    "node_modules",
+    ".pycache",
+    "__pycache__",
+    "target",
+    "build",
+    "dist",
+    ".git",
+    ".cache",
+    "*.tmp",
+    "*.log",
+    ".pytest_cache",
+    ".venv",
+    "venv",
+    ".DS_Store",
+    "Thumbs.db",
+]
+
+min_display_size = 1048576  # 1 MB (applies to individual files only, not folders)
+
+[colors]
+real_file_fg = "#0066CC"
+temp_file_fg = "#99CCFF"
+selected_border = "#FFFF00"
+
+[performance]
+max_depth = 10
+parallelism = 4
