@@ -3,11 +3,14 @@ use crate::ui::format::compact_size;
 use ratatui::{
     layout::Rect,
     style::{Color, Modifier, Style},
+    text::Line,
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
-use crate::models::FileType;
+use unicode_width::UnicodeWidthStr;
+
+use crate::models::{DirEntry, FileType};
 use crate::ui::colors::{interpolate_color, parse_color};
 
 pub fn render(f: &mut Frame, area: Rect, app: &App) {
@@ -97,12 +100,14 @@ fn render_node(f: &mut Frame, entry: &crate::models::DirEntry, rect: Rect, app: 
         rect
     };
     let name = crate::ui::fit_label(&entry.name(), usize::from(text_area.width));
-    let size = compact_size(entry.total_size);
-    let label = if text_area.height > 1 {
-        format!("{name}\n{size}")
-    } else {
-        name
-    };
+    let mut lines = vec![Line::from(name)];
+    if text_area.height > 1 {
+        lines.push(Line::from(compact_size(entry.total_size)));
+    }
+    if let Some(files) = fitting_file_list(entry, text_area) {
+        lines.push(Line::default());
+        lines.extend(files);
+    }
     let foreground = match bg_color {
         Color::Rgb(r, g, b)
             if 299 * u32::from(r) + 587 * u32::from(g) + 114 * u32::from(b) > 135000 =>
@@ -115,7 +120,30 @@ fn render_node(f: &mut Frame, entry: &crate::models::DirEntry, rect: Rect, app: 
     if text_area == rect && is_selected {
         label_style = label_style.add_modifier(Modifier::REVERSED);
     }
-    f.render_widget(Paragraph::new(label).style(label_style), text_area);
+    f.render_widget(Paragraph::new(lines).style(label_style), text_area);
+}
+
+fn fitting_file_list(entry: &DirEntry, area: Rect) -> Option<Vec<Line<'static>>> {
+    let available_rows = usize::from(area.height.saturating_sub(3));
+    if available_rows == 0 {
+        return None;
+    }
+
+    let mut lines = Vec::new();
+    for file in entry.children.as_ref()?.iter().filter(|child| !child.is_dir) {
+        if lines.len() == available_rows {
+            return None;
+        }
+        let name = file.path.file_name()?.to_string_lossy();
+        let size = compact_size(file.total_size);
+        let gap = usize::from(area.width).saturating_sub(2 + name.width() + size.len());
+        if gap < 2 || name.contains(char::is_control) {
+            return None;
+        }
+        let line = Line::from(format!("  {name}{}{size}", " ".repeat(gap)));
+        lines.push(line.style(Style::default().remove_modifier(Modifier::BOLD)));
+    }
+    (!lines.is_empty()).then_some(lines)
 }
 
 pub fn render_files(
@@ -126,8 +154,6 @@ pub fn render_files(
     indices: &[usize],
     cursor: usize,
 ) {
-    use ratatui::text::Line;
-    use unicode_width::UnicodeWidthStr;
     let title = format!("Files in {}", folder.display());
     let block = Block::default()
         .borders(Borders::ALL)
@@ -164,4 +190,25 @@ pub fn render_files(
         });
     }
     f.render_widget(Paragraph::new(lines), inner);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn file_list_requires_space_for_every_indented_name_and_the_gap() {
+        let mut folder = DirEntry::new("folder".into(), true);
+        folder.add_child(DirEntry::new("nested".into(), true));
+        folder.add_child(DirEntry::new("猫.txt".into(), false).with_size(12, false));
+        folder.add_child(DirEntry::new("b".into(), false).with_size(2048, false));
+        folder.finalize();
+
+        let lines = fitting_file_list(&folder, Rect::new(0, 0, 15, 5)).unwrap();
+        assert_eq!(lines.len(), 2);
+        assert_eq!(lines[0].to_string(), "  b      2.00KB");
+        assert_eq!(lines[1].to_string(), "  猫.txt  12.0B");
+        assert!(fitting_file_list(&folder, Rect::new(0, 0, 14, 5)).is_none());
+        assert!(fitting_file_list(&folder, Rect::new(0, 0, 15, 4)).is_none());
+    }
 }
