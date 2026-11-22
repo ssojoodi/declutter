@@ -77,3 +77,7 @@ pub fn render_ui(f: &mut Frame, app: &mut App) {
         components::inspector::render(f, app);
     }
 }
+
+#[cfg(test)]
+#[path = "../../tests/unit/ui.rs"]
+mod tests;
