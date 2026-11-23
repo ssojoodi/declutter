@@ -26,15 +26,70 @@ impl Scanner {
     pub fn scan_with_progress(
         &self,
         root: &Path,
+        on_folder: impl FnMut(&Path),
+    ) -> Result<DirEntry> {
+        self.walk(root, None, on_folder)
+    }
+
+    pub fn cached_scan_with_progress(
+        &self,
+        root: &Path,
+        on_folder: impl FnMut(&Path),
+    ) -> Result<DirEntry> {
+        let Some(directory) = super::cache::directory() else {
+            return self.scan_with_progress(root, on_folder);
+        };
+        let Ok(root) = root.canonicalize() else {
+            return self.scan_with_progress(root, on_folder);
+        };
+        self.scan_using_cache(&root, &directory, on_folder)
+    }
+
+    pub(super) fn scan_using_cache(
+        &self,
+        root: &Path,
+        directory: &Path,
+        on_folder: impl FnMut(&Path),
+    ) -> Result<DirEntry> {
+        if root.starts_with(directory) {
+            return self.scan_with_progress(root, on_folder);
+        }
+        let mut cache = super::cache::Cache::open(directory, &self.config).ok();
+        if let Some(cache) = &mut cache {
+            if let Ok(Some(tree)) = cache.load(root, super::cache::now()) {
+                return Ok(tree);
+            }
+        }
+        let tree = self.walk(root, Some(directory), on_folder)?;
+        if let Some(cache) = &mut cache {
+            let _ = cache.store(&tree, super::cache::now());
+        }
+        Ok(tree)
+    }
+
+    fn walk(
+        &self,
+        root: &Path,
+        excluded: Option<&Path>,
         mut on_folder: impl FnMut(&Path),
     ) -> Result<DirEntry> {
+        let excluded = excluded.map(|dir| dir.canonicalize().unwrap_or_else(|_| dir.to_owned()));
         let walk = WalkDirGeneric::<((), u64)>::new(root)
             .max_depth(self.config.performance.max_depth)
             .parallelism(jwalk::Parallelism::RayonNewPool(
                 self.config.performance.parallelism,
             ))
             .skip_hidden(false)
-            .process_read_dir(|_, _, _, children| {
+            .process_read_dir(move |_, parent, _, children| {
+                if let Some(dir) = &excluded {
+                    if dir.parent() == Some(parent) {
+                        children.retain(|entry| {
+                            entry
+                                .as_ref()
+                                .map_or(true, |e| Some(e.file_name()) != dir.file_name())
+                        });
+                    }
+                }
                 for entry in children.iter_mut().flatten() {
                     if !entry.file_type().is_dir() {
                         entry.client_state = calculate_file_size(&entry.path());

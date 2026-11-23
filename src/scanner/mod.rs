@@ -1,3 +1,4 @@
+mod cache;
 pub mod classifier;
 pub mod size_calculator;
 pub mod walker;
