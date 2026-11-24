@@ -33,8 +33,6 @@ fn main() -> Result<()> {
         .map(PathBuf::from)
         .unwrap_or_else(|| std::env::current_dir().unwrap());
 
-    let start_dir = start_dir.canonicalize().unwrap_or(start_dir);
-
     // Setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();

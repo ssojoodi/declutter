@@ -57,6 +57,7 @@ impl App {
     pub fn update(&mut self, msg: Message) -> Command {
         match msg {
             Message::ScanComplete(tree) => {
+                self.current_dir.clone_from(&tree.path);
                 self.dir_tree = Some(tree);
                 self.state = AppState::Exploring;
                 self.select_first();

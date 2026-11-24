@@ -36,13 +36,13 @@ impl Scanner {
         root: &Path,
         on_folder: impl FnMut(&Path),
     ) -> Result<DirEntry> {
-        let Some(directory) = super::cache::directory() else {
-            return self.scan_with_progress(root, on_folder);
-        };
         let Ok(root) = root.canonicalize() else {
             return self.scan_with_progress(root, on_folder);
         };
-        self.scan_using_cache(&root, &directory, on_folder)
+        match super::cache::directory() {
+            Some(directory) => self.scan_using_cache(&root, &directory, on_folder),
+            None => self.scan_with_progress(&root, on_folder),
+        }
     }
 
     pub(super) fn scan_using_cache(
@@ -51,10 +51,13 @@ impl Scanner {
         directory: &Path,
         on_folder: impl FnMut(&Path),
     ) -> Result<DirEntry> {
-        if root.starts_with(directory) {
+        let Ok(directory) = super::cache::prepare_directory(directory) else {
+            return self.walk(root, Some(directory.to_owned()), on_folder);
+        };
+        if root.starts_with(&directory) {
             return self.scan_with_progress(root, on_folder);
         }
-        let mut cache = super::cache::Cache::open(directory, &self.config).ok();
+        let mut cache = super::cache::Cache::open(&directory, &self.config).ok();
         if let Some(cache) = &mut cache {
             if let Ok(Some(tree)) = cache.load(root, super::cache::now()) {
                 return Ok(tree);
@@ -70,10 +73,9 @@ impl Scanner {
     fn walk(
         &self,
         root: &Path,
-        excluded: Option<&Path>,
+        excluded: Option<std::path::PathBuf>,
         mut on_folder: impl FnMut(&Path),
     ) -> Result<DirEntry> {
-        let excluded = excluded.map(|dir| dir.canonicalize().unwrap_or_else(|_| dir.to_owned()));
         let walk = WalkDirGeneric::<((), u64)>::new(root)
             .max_depth(self.config.performance.max_depth)
             .parallelism(jwalk::Parallelism::RayonNewPool(

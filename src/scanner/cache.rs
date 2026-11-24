@@ -29,6 +29,31 @@ pub(super) fn directory() -> Option<PathBuf> {
     base.map(|base| base.join("declutter"))
 }
 
+pub(super) fn prepare_directory(path: &Path) -> std::io::Result<PathBuf> {
+    DirBuilder::new().recursive(true).mode(0o700).create(path)?;
+    path.canonicalize()
+}
+
+struct SnapshotMatch {
+    completed: i64,
+    scan: i64,
+    entry: i64,
+}
+
+fn find_entry(db: &Connection, scan: i64, relative: &Path) -> Result<Option<i64>> {
+    let mut id = 1;
+    let mut children =
+        db.prepare_cached("SELECT id FROM entries WHERE scan=? AND parent=? AND name=?")?;
+    for name in relative.iter() {
+        let child = children
+            .query_row(params![scan, id, name.as_bytes()], |r| r.get(0))
+            .optional()?;
+        let Some(child) = child else { return Ok(None) };
+        id = child;
+    }
+    Ok(Some(id))
+}
+
 pub(super) struct Cache {
     db: Connection,
     patterns: Vec<u8>,
@@ -37,10 +62,6 @@ pub(super) struct Cache {
 
 impl Cache {
     pub(super) fn open(directory: &Path, config: &Config) -> Result<Self> {
-        DirBuilder::new()
-            .recursive(true)
-            .mode(0o700)
-            .create(directory)?;
         let mut db = Connection::open(directory.join("trees.sqlite3"))?;
         db.pragma_update(None, "foreign_keys", true)?;
         let version =
@@ -67,7 +88,7 @@ impl Cache {
 
     pub(super) fn load(&mut self, root: &Path, now: i64) -> Result<Option<DirEntry>> {
         let tx = self.db.transaction()?;
-        let mut best = None;
+        let mut best: Option<SnapshotMatch> = None;
         for ancestor in root.ancestors() {
             let scan = tx
                 .query_row(
@@ -86,22 +107,12 @@ impl Cache {
             let Some((scan, completed)) = scan else {
                 continue;
             };
-            if best.is_some_and(|(time, _, _)| time >= completed) {
+            if best.as_ref().is_some_and(|m| m.completed >= completed) {
                 continue;
             }
-            let mut id = Some(1_i64);
-            for component in root.strip_prefix(ancestor)?.components() {
-                id = tx
-                    .prepare_cached("SELECT id FROM entries WHERE scan=? AND parent=? AND name=?")?
-                    .query_row(params![scan, id, component.as_os_str().as_bytes()], |r| {
-                        r.get(0)
-                    })
-                    .optional()?;
-                if id.is_none() {
-                    break;
-                }
-            }
-            let Some(id) = id else { continue };
+            let Some(id) = find_entry(&tx, scan, root.strip_prefix(ancestor)?)? else {
+                continue;
+            };
             let (count, limited): (i64, bool) = tx.query_row(
                 "SELECT files, limited FROM entries WHERE scan=? AND id=?",
                 [scan, id],
@@ -109,10 +120,14 @@ impl Cache {
             )?;
             let ttl = if count > 1000 { MAX_AGE } else { MINUTE };
             if now - completed < ttl && (id == 1 || !limited) {
-                best = Some((completed, scan, id));
+                best = Some(SnapshotMatch {
+                    completed,
+                    scan,
+                    entry: id,
+                });
             }
         }
-        let Some((_, scan, id)) = best else {
+        let Some(selected) = best else {
             return Ok(None);
         };
         // Preorder IDs place an entire subtree in one contiguous range.
@@ -121,8 +136,8 @@ impl Cache {
             WHERE scan=?1 AND id BETWEEN ?2 AND (SELECT last FROM entries WHERE scan=?1 AND id=?2)
             ORDER BY id",
         )?;
-        let mut rows = stmt.query([scan, id])?;
-        Ok(Some(read_node(&mut rows, root, true, id)?.0))
+        let mut rows = stmt.query([selected.scan, selected.entry])?;
+        Ok(Some(read_node(&mut rows, root, true, selected.entry)?.0))
     }
 
     pub(super) fn store(&mut self, tree: &DirEntry, completed: i64) -> Result<()> {
