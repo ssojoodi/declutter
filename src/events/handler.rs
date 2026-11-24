@@ -7,6 +7,8 @@ pub fn handle_key_event(key: KeyEvent) -> Option<Message> {
         KeyCode::Char('q') | KeyCode::Char('Q') => Some(Message::Quit),
         KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => Some(Message::Quit),
 
+        KeyCode::Char('c') if key.modifiers.is_empty() => Some(Message::OpenShell),
+
         KeyCode::Up | KeyCode::Char('k') => Some(Message::Navigate(Direction::Up)),
         KeyCode::Down | KeyCode::Char('j') => Some(Message::Navigate(Direction::Down)),
         KeyCode::Left | KeyCode::Char('h') => Some(Message::Navigate(Direction::Left)),

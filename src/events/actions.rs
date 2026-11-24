@@ -10,5 +10,6 @@ pub enum Message {
     Inspect,
     ScanComplete(DirEntry),
     ScanError(String),
+    OpenShell,
     Quit,
 }
