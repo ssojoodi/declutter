@@ -65,7 +65,7 @@ fn run_app(
     let worker = thread::Builder::new()
         .name("folder-index".into())
         .spawn(move || {
-            scanner.scan_with_progress(&root, |path| {
+            scanner.cached_scan_with_progress(&root, |path| {
                 let mut folder = worker_folder.lock().unwrap();
                 folder.clear();
                 folder.push(path);

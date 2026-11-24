@@ -55,6 +55,21 @@ You can also run `./declutter` directly from the extracted folder. The installer
 
 Optional settings in `.declutter.toml` control temporary-file patterns, colors, scan depth, and directory worker count. The app looks in the current directory, then your home directory, and otherwise uses its built-in defaults.
 
+## Scan cache
+
+Declutter saves completed directory scans in one per-user SQLite file. On Linux the file is
+`$XDG_CACHE_HOME/declutter/trees.sqlite3` (default `~/.cache/declutter/trees.sqlite3`).
+On macOS it is `~/Library/Caches/declutter/trees.sqlite3`. The scanner skips its own
+cache directory when indexing an ancestor.
+
+Reopening a folder loads the freshest snapshot that covers it, including snapshots of
+parent folders. Folders with up to 1,000 indexed files expire one minute after the scan
+finishes. Larger folders expire after 15 minutes. Each subfolder uses its own recursive
+file count and the original scan time. Changes on disk appear after a fresh scan.
+Changing temporary-file patterns or the scan depth triggers a separate scan. If a
+parent scan stopped too early to cover a subfolder, Declutter scans that subfolder
+directly. If the cache is unavailable, Declutter still displays a live scan.
+
 ## Code layout
 
 - `src/scanner/` walks the filesystem and classifies entries.
@@ -63,8 +78,6 @@ Optional settings in `.declutter.toml` control temporary-file patterns, colors, 
 - `src/algorithms/` computes treemap geometry.
 - `src/ui/` renders the explorer, file list, and inspector.
 - `src/main.rs` connects the scanner and UI to the terminal.
-
-The running explorer reads configuration, directory entries, and file metadata. It keeps its index in memory.
 
 ## License
 

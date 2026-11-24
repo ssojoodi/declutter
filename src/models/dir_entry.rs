@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use super::FileType;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct DirEntry {
     pub path: PathBuf,
     pub total_size: u64,
