@@ -18,6 +18,7 @@ fn hints(app: &App) -> &[&str] {
             "Esc/Backspace up",
             "Q quit",
             "F files",
+            "c open shell",
             "I inspect",
         ],
         _ => &["Q quit"],

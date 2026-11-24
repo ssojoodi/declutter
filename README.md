@@ -49,6 +49,7 @@ You can also run `./declutter` directly from the extracted folder. The installer
 - **Backspace** / **Esc**: Go up one directory, stopping at the starting folder
 - **i**: Open inspector view for selected directory
 - **Esc**: Close inspector view
+- **c**: Exit Declutter and open an interactive shell in the selected folder (or the current folder if no subfolder is selected). Exit that shell to return to the original shell.
 - **q**: Quit application
 
 ## Configuration

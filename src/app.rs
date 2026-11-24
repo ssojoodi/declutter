@@ -35,6 +35,7 @@ pub struct App {
 
 pub enum Command {
     None,
+    OpenShell(PathBuf),
     Quit,
 }
 
@@ -161,6 +162,15 @@ impl App {
                 Command::None
             }
 
+            Message::OpenShell => match self.state {
+                AppState::Exploring => {
+                    let folder = self.get_selected_entry()
+                        .filter(|entry| entry.is_dir)
+                        .map_or(&self.current_dir, |entry| &entry.path);
+                    Command::OpenShell(folder.clone())
+                }
+                _ => Command::None,
+            },
             Message::Quit => Command::Quit,
         }
     }
